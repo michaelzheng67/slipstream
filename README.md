@@ -1,5 +1,12 @@
 A single-instrument execution algorithm in C++ that validates trades made against a rolling VWAP window based on quotes submitted by market participants.
 
+build:
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+
+tests:
+ctest --test-dir build --output-on-failure
+
 Measurement plan
 
 Latency (p50, p90, p99. We care about tail time here as the tail can kill our trading strategy)
