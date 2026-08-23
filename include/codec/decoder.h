@@ -4,13 +4,13 @@
 #include <stdint.h>
 #include <variant>
 
-namespace gcmd_decoder {
+namespace decoder {
 
 using bytes_written = std::size_t;
-using gcmd_msg_body =
-    std::variant<quote_body, trade_body, heartbeat_body, sessioncontrol_body>;
+using msg_body = std::variant<quote_body, trade_body, heartbeat_body,
+                              sessioncontrol_body, new_order, exec_report>;
 
-gcmd_msg_body decoding(const std::byte *buf, std::size_t len) {
+inline msg_body decoding(const std::byte *buf, std::size_t len) {
   frame_header fh;
   std::memcpy(&fh, buf, sizeof(frame_header));
   auto body_ptr = buf + sizeof(frame_header);
@@ -36,6 +36,16 @@ gcmd_msg_body decoding(const std::byte *buf, std::size_t len) {
     std::memcpy(&scb, body_ptr, sizeof(sessioncontrol_body));
     return scb;
   }
+  case 10: {
+    new_order no;
+    std::memcpy(&no, body_ptr, sizeof(new_order));
+    return no;
+  }
+  case 11: {
+    exec_report er;
+    std::memcpy(&er, body_ptr, sizeof(exec_report));
+  }
   }
 }
-}; // namespace gcmd_decoder
+
+}; // namespace decoder

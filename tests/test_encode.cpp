@@ -1,6 +1,6 @@
-#include "gcmd/decoder.h"
-#include "gcmd/encoder.h"
-#include "gcmd/protocol.h"
+#include "codec/decoder.h"
+#include "codec/encoder.h"
+#include "codec/protocol.h"
 #include <gtest/gtest.h>
 
 TEST(Encoder, QuoteRoundTrip) {
@@ -14,10 +14,10 @@ TEST(Encoder, QuoteRoundTrip) {
   fh.version = 1;
 
   std::byte buf[128];
-  auto n = gcmd_encoder::encoding(fh, qb, buf);
+  auto n = encoder::encoding(fh, qb, buf);
   ASSERT_EQ(n, sizeof(frame_header) + sizeof(quote_body));
 
-  gcmd_decoder::gcmd_msg_body decoded = gcmd_decoder::decoding(buf, n);
+  decoder::msg_body decoded = decoder::decoding(buf, n);
   auto *out = std::get_if<quote_body>(&decoded);
   ASSERT_NE(out, nullptr);
   EXPECT_EQ(out->bid_qty, qb.bid_qty);

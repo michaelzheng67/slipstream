@@ -10,6 +10,7 @@ FetchContent_MakeAvailable(googletest)
 add_executable(
   slipstream_tests
   test_encode.cpp
+  test_parser.cpp
 )
 
 target_link_libraries(slipstream_tests PRIVATE slipstream GTest::gtest_main)
