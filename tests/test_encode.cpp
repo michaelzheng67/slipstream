@@ -10,7 +10,7 @@ TEST(Encoder, QuoteRoundTrip) {
 
   frame_header fh{};
   fh.body_len = sizeof(quote_body);
-  fh.msg_type = 1; // matches `case 1:` in your decoder
+  fh.msg_type = 1;
   fh.version = 1;
 
   std::byte buf[128];
