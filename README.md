@@ -30,5 +30,6 @@ Resources
 - lock contention / context switches in the hot path
 
 Scalability
+
 - max concurrent connections
 - connection setup / teardown costs

@@ -44,6 +44,7 @@ inline msg_body decoding(const std::byte *buf, std::size_t len) {
   case 11: {
     exec_report er;
     std::memcpy(&er, body_ptr, sizeof(exec_report));
+    return er;
   }
   }
 }
