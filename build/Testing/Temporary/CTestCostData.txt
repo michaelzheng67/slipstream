@@ -1,2 +1,0 @@
-Encoder.QuoteRoundTrip 1 0.00790733
----

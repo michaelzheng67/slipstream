@@ -1,5 +1,0 @@
-if(EXISTS "/Users/michaelzheng/Desktop/slipstream/build/tests/slipstream_tests[1]_tests.cmake")
-  include("/Users/michaelzheng/Desktop/slipstream/build/tests/slipstream_tests[1]_tests.cmake")
-else()
-  add_test(slipstream_tests_NOT_BUILT slipstream_tests_NOT_BUILT)
-endif()
