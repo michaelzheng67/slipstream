@@ -11,9 +11,13 @@ add_executable(
   slipstream_tests
   test_encode.cpp
   test_parser.cpp
+  test_md.cpp
 )
 
 target_link_libraries(slipstream_tests PRIVATE slipstream GTest::gtest_main)
 
 include(GoogleTest)
-gtest_discover_tests(slipstream_tests)
+gtest_discover_tests(
+  slipstream_tests
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
