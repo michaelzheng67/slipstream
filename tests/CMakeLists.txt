@@ -12,6 +12,7 @@ add_executable(
   test_encode.cpp
   test_parser.cpp
   test_md.cpp
+  test_oe.cpp
 )
 
 target_link_libraries(slipstream_tests PRIVATE slipstream GTest::gtest_main)

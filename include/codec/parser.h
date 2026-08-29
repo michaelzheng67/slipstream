@@ -12,7 +12,7 @@ public:
   parser(std::size_t capacity)
       : _buf(std::make_unique<std::byte[]>(capacity)), _capacity(capacity) {}
 
-  std::vector<decoder::msg_body> feed(std::byte *new_bytes,
+  std::vector<decoder::msg_body> feed(const std::byte *new_bytes,
                                       std::size_t num_bytes) {
 
     if (_size + num_bytes >= _capacity) {

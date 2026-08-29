@@ -7,7 +7,7 @@
 #include <vector>
 
 TEST(MarketDataClientTest, ReplaysQuotesWithTiming) {
-  const std::string path = "./data/Quotes_and_Trades.csv";
+  const std::string path = "./data/test_file.csv";
 
   // Create tiny test CSV
   {

@@ -4,7 +4,7 @@
 
 enum class row_type { quote, trade };
 
-std::unordered_map<std::string, row_type> string_to_row_type{
+inline std::unordered_map<std::string, row_type> string_to_row_type{
     {"Q", row_type::quote},
     {"T", row_type::trade},
 };
