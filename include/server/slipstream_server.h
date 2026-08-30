@@ -18,6 +18,9 @@ class slipstream_server {
   parser _md_parser{32768};
   parser _oe_parser{32768};
 
+  std::string _symbol;
+  uint64_t _vwap_window_ns;
+
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -99,7 +102,10 @@ class slipstream_server {
   }
 
 public:
-  slipstream_server(uint16_t md, uint16_t oe) : _md_port(md), _oe_port(oe) {}
+  slipstream_server(uint16_t md, uint16_t oe, std::string symbol,
+                    uint64_t vwap_window_ms)
+      : _md_port(md), _oe_port(oe), _symbol(symbol),
+        _vwap_window_ns(vwap_window_ms * 1'000'000ULL) {}
 
   ~slipstream_server() {
     if (_md_fd >= 0) {

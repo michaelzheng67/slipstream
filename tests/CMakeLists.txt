@@ -14,6 +14,8 @@ add_executable(
   test_md.cpp
   test_oe.cpp
   test_server.cpp
+  test_cli_config.cpp
+  ${CMAKE_SOURCE_DIR}/src/cli/cli_config.cpp
 )
 
 target_link_libraries(slipstream_tests PRIVATE slipstream GTest::gtest_main)

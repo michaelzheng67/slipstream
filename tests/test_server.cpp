@@ -24,7 +24,7 @@ int connect_to(uint16_t port) {
 } // namespace
 
 TEST(SlipstreamServer, AcceptsBothClients) {
-  slipstream_server server(0, 0);
+  slipstream_server server(0, 0, "SYNTH4", 1000);
   server.start();
 
   std::thread server_thread([&] { server.run(); });
