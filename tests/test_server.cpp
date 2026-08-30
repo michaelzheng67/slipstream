@@ -35,8 +35,7 @@ TEST(SlipstreamServer, AcceptsBothClients) {
   int oe_client = connect_to(server.oe_port());
   ASSERT_GE(oe_client, 0);
 
-  server_thread.join();
-
   close(md_client);
   close(oe_client);
+  server_thread.join();
 }

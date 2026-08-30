@@ -3,7 +3,10 @@
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <thread>
 #include <unistd.h>
+
+#include "codec/parser.h"
 
 class slipstream_server {
 
@@ -11,6 +14,9 @@ class slipstream_server {
   int _oe_fd{-1};
   uint16_t _md_port{0};
   uint16_t _oe_port{0};
+
+  parser _md_parser{32768};
+  parser _oe_parser{32768};
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -44,6 +50,52 @@ class slipstream_server {
       throw std::runtime_error("getsockname failed");
     }
     return ntohs(addr.sin_port);
+  }
+
+  void handle_md_message(auto &message) {
+    // dispatch MD message
+  }
+
+  void handle_oe_message(auto &message) {
+    // dispatch OE message
+  }
+
+  void handle_md(int client_fd) {
+    std::byte buf[4096];
+
+    while (true) {
+      ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
+
+      if (n <= 0) {
+        break;
+      }
+
+      auto messages = _md_parser.feed(buf, static_cast<size_t>(n));
+      for (auto &message : messages) {
+        handle_md_message(message);
+      }
+    }
+
+    close(client_fd);
+  }
+
+  void handle_oe(int client_fd) {
+    std::byte buf[4096];
+
+    while (true) {
+      ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
+
+      if (n <= 0) {
+        break;
+      }
+
+      auto messages = _oe_parser.feed(buf, static_cast<size_t>(n));
+      for (auto &message : messages) {
+        handle_oe_message(message);
+      }
+    }
+
+    close(client_fd);
   }
 
 public:
@@ -80,6 +132,7 @@ public:
       throw std::runtime_error("MD accept failed");
     }
 
+    client_len = sizeof(client_addr);
     int oe_client =
         accept(_oe_fd, reinterpret_cast<sockaddr *>(&client_addr), &client_len);
 
@@ -88,7 +141,10 @@ public:
       throw std::runtime_error("OE accept failed");
     }
 
-    close(md_client);
-    close(oe_client);
+    std::thread md_thread([&, md_client] { handle_md(md_client); });
+    std::thread oe_thread([&, oe_client] { handle_oe(oe_client); });
+
+    md_thread.join();
+    oe_thread.join();
   }
 };
