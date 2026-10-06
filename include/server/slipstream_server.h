@@ -85,17 +85,21 @@ class slipstream_server {
   void handle_md(int client_fd) {
     std::byte buf[4096];
 
-    while (true) {
-      ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
+    try {
+      while (true) {
+        ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
 
-      if (n <= 0) {
-        break;
-      }
+        if (n <= 0) {
+          break;
+        }
 
-      auto messages = _md_parser.feed(buf, static_cast<size_t>(n));
-      for (auto &message : messages) {
-        handle_md_message(message);
+        auto messages = _md_parser.feed(buf, static_cast<size_t>(n));
+        for (auto &message : messages) {
+          handle_md_message(message);
+        }
       }
+    } catch (const std::exception &e) {
+      std::println(stderr, "md connection dropped: {}", e.what());
     }
 
     close(client_fd);
@@ -104,17 +108,21 @@ class slipstream_server {
   void handle_oe(int client_fd) {
     std::byte buf[4096];
 
-    while (true) {
-      ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
+    try {
+      while (true) {
+        ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
 
-      if (n <= 0) {
-        break;
-      }
+        if (n <= 0) {
+          break;
+        }
 
-      auto messages = _oe_parser.feed(buf, static_cast<size_t>(n));
-      for (auto &message : messages) {
-        handle_oe_message(message);
+        auto messages = _oe_parser.feed(buf, static_cast<size_t>(n));
+        for (auto &message : messages) {
+          handle_oe_message(message);
+        }
       }
+    } catch (const std::exception &e) {
+      std::println(stderr, "oe connection dropped: {}", e.what());
     }
 
     close(client_fd);
