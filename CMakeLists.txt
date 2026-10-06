@@ -15,6 +15,9 @@ add_executable(slipstream_app
 )
 target_link_libraries(slipstream_app PRIVATE slipstream)
 
+add_executable(slipstream_client src/client_main.cpp)
+target_link_libraries(slipstream_client PRIVATE slipstream)
+
 option(SLIPSTREAM_BUILD_TESTS "build unit tests" ON)
 if(SLIPSTREAM_BUILD_TESTS)
   enable_testing()
