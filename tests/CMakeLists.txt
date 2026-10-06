@@ -11,6 +11,7 @@ add_executable(
   slipstream_tests
   test_encode.cpp
   test_parser.cpp
+  test_decoder.cpp
   test_md.cpp
   test_oe.cpp
   test_server.cpp
