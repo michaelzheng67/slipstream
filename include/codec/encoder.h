@@ -1,3 +1,5 @@
+#pragma once
+
 #include "protocol.h"
 #include <cstddef>
 #include <cstring>

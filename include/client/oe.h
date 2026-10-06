@@ -1,3 +1,5 @@
+#pragma once
+
 #include "codec/parser.h"
 #include "row.h"
 #include "row_reader.h"

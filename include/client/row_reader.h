@@ -1,3 +1,5 @@
+#pragma once
+
 #include "row.h"
 #include <optional>
 #include <sstream>

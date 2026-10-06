@@ -1,6 +1,9 @@
+#pragma once
+
 #include <arpa/inet.h>
 #include <cstdint>
 #include <netinet/in.h>
+#include <print>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <thread>
@@ -55,12 +58,28 @@ class slipstream_server {
     return ntohs(addr.sin_port);
   }
 
-  void handle_md_message(auto &message) {
-    // dispatch MD message
+  void handle_md_message(decoder::msg_body &message) {
+
+    quote_body body;
+    try {
+      body = std::get<0>(message); // quote_body
+    } catch (const std::bad_variant_access &ex) {
+      return;
+    }
+
+    std::println("{} md quote", body.symbol);
   }
 
-  void handle_oe_message(auto &message) {
-    // dispatch OE message
+  void handle_oe_message(decoder::msg_body &message) {
+
+    trade_body body;
+    try {
+      body = std::get<1>(message); // trade_body
+    } catch (const std::bad_variant_access &ex) {
+      return;
+    }
+
+    std::println("{} oe trade", body.symbol);
   }
 
   void handle_md(int client_fd) {
@@ -147,6 +166,7 @@ public:
       throw std::runtime_error("OE accept failed");
     }
 
+    std::println("clients running!");
     std::thread md_thread([&, md_client] { handle_md(md_client); });
     std::thread oe_thread([&, oe_client] { handle_oe(oe_client); });
 
