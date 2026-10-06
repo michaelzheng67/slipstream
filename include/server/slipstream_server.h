@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <cstdint>
+#include <cstring>
 #include <netinet/in.h>
 #include <print>
 #include <stdexcept>
@@ -20,6 +21,9 @@ class slipstream_server {
 
   parser _md_parser{32768};
   parser _oe_parser{32768};
+
+  uint64_t _md_dropped{0};
+  uint64_t _oe_dropped{0};
 
   std::string _symbol;
   uint64_t _vwap_window_ns;
@@ -67,7 +71,13 @@ class slipstream_server {
       return;
     }
 
-    std::println("{} md quote", body.symbol);
+    std::string_view sym(body.symbol, strnlen(body.symbol, 12));
+    if (sym != _symbol) {
+      ++_md_dropped;
+      return;
+    }
+
+    std::println("{} md quote", sym);
   }
 
   void handle_oe_message(decoder::msg_body &message) {
@@ -79,7 +89,13 @@ class slipstream_server {
       return;
     }
 
-    std::println("{} oe trade", body.symbol);
+    std::string_view sym(body.symbol, strnlen(body.symbol, 12));
+    if (sym != _symbol) {
+      ++_oe_dropped;
+      return;
+    }
+
+    std::println("{} oe trade", sym);
   }
 
   void handle_md(int client_fd) {
@@ -102,6 +118,7 @@ class slipstream_server {
       std::println(stderr, "md connection dropped: {}", e.what());
     }
 
+    std::println("md dropped {} messages", _md_dropped);
     close(client_fd);
   }
 
@@ -125,6 +142,7 @@ class slipstream_server {
       std::println(stderr, "oe connection dropped: {}", e.what());
     }
 
+    std::println("oe dropped {} messages", _oe_dropped);
     close(client_fd);
   }
 
