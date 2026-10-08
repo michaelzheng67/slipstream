@@ -12,6 +12,7 @@ add_executable(
   test_encode.cpp
   test_parser.cpp
   test_decoder.cpp
+  test_top_of_book.cpp
   test_md.cpp
   test_oe.cpp
   test_server.cpp

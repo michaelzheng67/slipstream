@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "codec/parser.h"
+#include "server/top_of_book.h"
 
 class slipstream_server {
 
@@ -27,6 +28,7 @@ class slipstream_server {
 
   std::string _symbol;
   uint64_t _vwap_window_ns;
+  top_of_book _book;
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -77,7 +79,8 @@ class slipstream_server {
       return;
     }
 
-    std::println("{} md quote", sym);
+    _book.update(body);
+    std::println("{} book: {}", sym, _book);
   }
 
   void handle_oe_message(decoder::msg_body &message) {
