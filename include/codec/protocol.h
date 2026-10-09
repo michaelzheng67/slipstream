@@ -53,7 +53,7 @@ struct new_order {
 
 struct exec_report {
   uint64_t client_order_id;
-  uint64_t symbol[12];
+  char symbol[12];
   uint8_t status;
   uint32_t filled_qty;
   int64_t avg_px;
