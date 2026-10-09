@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "codec/parser.h"
+#include "server/rolling_vwap.h"
 #include "server/top_of_book.h"
 
 class slipstream_server {
@@ -27,8 +28,8 @@ class slipstream_server {
   uint64_t _oe_dropped{0};
 
   std::string _symbol;
-  uint64_t _vwap_window_ns;
   top_of_book _book;
+  rolling_vwap<4096, overflow_policy::halt> _vwap;
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -98,7 +99,11 @@ class slipstream_server {
       return;
     }
 
-    std::println("{} oe trade", sym);
+    _vwap.add(body.ts_ns, body.px, body.qty);
+    if (auto v = _vwap.vwap()) {
+      std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body.px), body.qty,
+                   fmt_px(*v));
+    }
   }
 
   void handle_md(int client_fd) {
@@ -153,7 +158,7 @@ public:
   slipstream_server(uint16_t md, uint16_t oe, std::string symbol,
                     uint64_t vwap_window_ms)
       : _md_port(md), _oe_port(oe), _symbol(symbol),
-        _vwap_window_ns(vwap_window_ms * 1'000'000ULL) {}
+        _vwap(vwap_window_ms * 1'000'000ULL) {}
 
   ~slipstream_server() {
     if (_md_fd >= 0) {
