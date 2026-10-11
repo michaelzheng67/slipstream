@@ -1,13 +1,14 @@
 #pragma once
 
 #include <arpa/inet.h>
+#include <cerrno>
 #include <cstdint>
 #include <cstring>
 #include <netinet/in.h>
+#include <poll.h>
 #include <print>
 #include <stdexcept>
 #include <sys/socket.h>
-#include <thread>
 #include <unistd.h>
 
 #include "codec/parser.h"
@@ -106,52 +107,25 @@ class slipstream_server {
     }
   }
 
-  void handle_md(int client_fd) {
+  template <typename OnMessage>
+  bool read_one(std::string_view name, int fd, parser &p,
+                OnMessage on_message) {
     std::byte buf[4096];
-
-    try {
-      while (true) {
-        ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
-
-        if (n <= 0) {
-          break;
-        }
-
-        auto messages = _md_parser.feed(buf, static_cast<size_t>(n));
-        for (auto &message : messages) {
-          handle_md_message(message);
-        }
-      }
-    } catch (const std::exception &e) {
-      std::println(stderr, "md connection dropped: {}", e.what());
+    ssize_t n = recv(fd, buf, sizeof(buf), 0);
+    if (n <= 0) {
+      return false;
     }
 
-    std::println("md dropped {} messages", _md_dropped);
-    close(client_fd);
-  }
-
-  void handle_oe(int client_fd) {
-    std::byte buf[4096];
-
     try {
-      while (true) {
-        ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
-
-        if (n <= 0) {
-          break;
-        }
-
-        auto messages = _oe_parser.feed(buf, static_cast<size_t>(n));
-        for (auto &message : messages) {
-          handle_oe_message(message);
-        }
+      auto messages = p.feed(buf, static_cast<std::size_t>(n));
+      for (auto &message : messages) {
+        on_message(message);
       }
-    } catch (const std::exception &e) {
-      std::println(stderr, "oe connection dropped: {}", e.what());
+      return true;
+    } catch (std::exception &e) {
+      std::println(stderr, "{} connection dropped: {}", name, e.what());
+      return false;
     }
-
-    std::println("oe dropped {} messages", _oe_dropped);
-    close(client_fd);
   }
 
 public:
@@ -201,10 +175,37 @@ public:
     }
 
     std::println("clients running!");
-    std::thread md_thread([&, md_client] { handle_md(md_client); });
-    std::thread oe_thread([&, oe_client] { handle_oe(oe_client); });
+    pollfd fds[2] = {
+        {.fd = md_client, .events = POLLIN, .revents = 0},
+        {.fd = oe_client, .events = POLLIN, .revents = 0},
+    };
 
-    md_thread.join();
-    oe_thread.join();
+    while (fds[0].fd >= 0 || fds[1].fd >= 0) {
+      if (poll(fds, 2, -1) < 0) {
+        if (errno == EINTR)
+          continue;
+        throw std::runtime_error("poll() failed");
+      }
+
+      if (fds[0].revents) {
+        auto res = read_one("md", fds[0].fd, _md_parser,
+                            [this](auto &m) { handle_md_message(m); });
+        if (!res) {
+          std::println("md dropped {} messages", _md_dropped);
+          close(fds[0].fd);
+          fds[0].fd = -1;
+        }
+      }
+
+      if (fds[1].revents) {
+        auto res = read_one("oe", fds[1].fd, _oe_parser,
+                            [this](auto &m) { handle_oe_message(m); });
+        if (!res) {
+          std::println("oe dropped {} messages", _oe_dropped);
+          close(fds[1].fd);
+          fds[1].fd = -1;
+        }
+      }
+    }
   }
 };

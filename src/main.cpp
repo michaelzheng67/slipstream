@@ -7,15 +7,11 @@ int main(int argc, char **argv) {
   try {
     auto cfg = parse_args(argc, argv);
 
-    std::thread server_thread([&]() {
-      slipstream_server server(cfg.md_port, cfg.oe_port, cfg.symbol,
-                               cfg.vwap_window_ms);
-      std::println("starting server...");
-      server.start();
-      server.run();
-    });
-
-    server_thread.join();
+    slipstream_server server(cfg.md_port, cfg.oe_port, cfg.symbol,
+                             cfg.vwap_window_ms);
+    std::println("starting server...");
+    server.start();
+    server.run();
   } catch (const std::exception &e) {
     std::cerr << "error: " << e.what() << '\n';
     return 1;
