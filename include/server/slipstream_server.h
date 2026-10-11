@@ -68,42 +68,38 @@ class slipstream_server {
 
   void handle_md_message(decoder::msg_body &message) {
 
-    quote_body body;
-    try {
-      body = std::get<0>(message); // quote_body
-    } catch (const std::bad_variant_access &ex) {
+    auto *body = std::get_if<quote_body>(&message);
+    if (!body) {
       return;
     }
 
-    std::string_view sym(body.symbol, strnlen(body.symbol, 12));
+    std::string_view sym(body->symbol, strnlen(body->symbol, 12));
     if (sym != _symbol) {
       ++_md_dropped;
       return;
     }
 
-    _book.update(body);
+    _book.update(*body);
     std::println("{} book: {}", sym, _book);
   }
 
   void handle_oe_message(decoder::msg_body &message) {
 
-    trade_body body;
-    try {
-      body = std::get<1>(message); // trade_body
-    } catch (const std::bad_variant_access &ex) {
+    auto *body = std::get_if<trade_body>(&message);
+    if (!body) {
       return;
     }
 
-    std::string_view sym(body.symbol, strnlen(body.symbol, 12));
+    std::string_view sym(body->symbol, strnlen(body->symbol, 12));
     if (sym != _symbol) {
       ++_oe_dropped;
       return;
     }
 
-    _vwap.add(body.ts_ns, body.px, body.qty);
+    _vwap.add(body->ts_ns, body->px, body->qty);
     if (auto v = _vwap.vwap()) {
-      std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body.px), body.qty,
-                   fmt_px(*v));
+      std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body->px),
+                   body->qty, fmt_px(*v));
     }
   }
 
@@ -122,7 +118,7 @@ class slipstream_server {
         on_message(message);
       }
       return true;
-    } catch (std::exception &e) {
+    } catch (const std::exception &e) {
       std::println(stderr, "{} connection dropped: {}", name, e.what());
       return false;
     }
