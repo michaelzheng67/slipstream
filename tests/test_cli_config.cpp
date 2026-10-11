@@ -92,3 +92,30 @@ TEST(ParseArgs, NoArgsThrowsMissingSymbol) {
 
   EXPECT_THROW(parse_args(args.argc(), args.argv()), std::runtime_error);
 }
+TEST(ParseBpsTest, ConvertsDecimals) {
+  EXPECT_EQ(parse_bps("0.002"), 20u);
+  EXPECT_EQ(parse_bps("0.1"), 1000u);
+  EXPECT_EQ(parse_bps("0.0005"), 5u);
+  EXPECT_EQ(parse_bps("1"), 10000u);
+  EXPECT_EQ(parse_bps("1.5"), 15000u);
+  EXPECT_EQ(parse_bps("0."), 0u);
+}
+
+TEST(ParseBpsTest, RejectsBadInput) {
+  EXPECT_THROW(parse_bps(""), std::runtime_error);
+  EXPECT_THROW(parse_bps("abc"), std::runtime_error);
+  EXPECT_THROW(parse_bps("-0.1"), std::runtime_error);
+  EXPECT_THROW(parse_bps(".5"), std::runtime_error);
+  EXPECT_THROW(parse_bps("0.1x"), std::runtime_error);
+  EXPECT_THROW(parse_bps("0.00015"), std::runtime_error);
+  EXPECT_THROW(parse_bps("999999"), std::runtime_error);
+}
+
+TEST(ParseArgs, ParsesDecisionFlags) {
+  argv_builder args({"--symbol", "SYNTH4", "--band", "0.002",
+                     "--participation-cap", "0.1", "--max-quantity", "500"});
+  auto cfg = parse_args(args.argc(), args.argv());
+  EXPECT_EQ(cfg.band_bps, 20u);
+  EXPECT_EQ(cfg.participation_cap_bps, 1000u);
+  EXPECT_EQ(cfg.max_quantity, 500u);
+}
