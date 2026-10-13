@@ -18,6 +18,7 @@ add_executable(
   test_oe.cpp
   test_server.cpp
   test_cli_config.cpp
+  test_decision_engine.cpp
   ${CMAKE_SOURCE_DIR}/src/cli/cli_config.cpp
 )
 
