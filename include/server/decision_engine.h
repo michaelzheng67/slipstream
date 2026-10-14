@@ -13,6 +13,18 @@ enum class side_t {
   sell,
 };
 
+constexpr char side_t_to_char(side_t s) {
+  switch (s) {
+  case side_t::not_set:
+    return 'N';
+  case side_t::buy:
+    return 'B';
+  case side_t::sell:
+    return 'S';
+  }
+  return 'N';
+}
+
 enum class reject_reason {
   not_set,
   accepted,
@@ -36,22 +48,32 @@ struct decision {
 
 constexpr std::string_view to_string(side_t s) {
   switch (s) {
-  case side_t::not_set: return "not_set";
-  case side_t::buy: return "BUY";
-  case side_t::sell: return "SELL";
+  case side_t::not_set:
+    return "not_set";
+  case side_t::buy:
+    return "BUY";
+  case side_t::sell:
+    return "SELL";
   }
   return "unknown";
 }
 
 constexpr std::string_view to_string(reject_reason r) {
   switch (r) {
-  case reject_reason::not_set: return "not_set";
-  case reject_reason::accepted: return "accepted";
-  case reject_reason::warming_up: return "warming_up";
-  case reject_reason::no_signal: return "no_signal";
-  case reject_reason::over_participation_cap: return "over_participation_cap";
-  case reject_reason::zero_quantity: return "zero_quantity";
-  case reject_reason::halted: return "halted";
+  case reject_reason::not_set:
+    return "not_set";
+  case reject_reason::accepted:
+    return "accepted";
+  case reject_reason::warming_up:
+    return "warming_up";
+  case reject_reason::no_signal:
+    return "no_signal";
+  case reject_reason::over_participation_cap:
+    return "over_participation_cap";
+  case reject_reason::zero_quantity:
+    return "zero_quantity";
+  case reject_reason::halted:
+    return "halted";
   }
   return "unknown";
 }

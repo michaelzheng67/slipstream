@@ -1,6 +1,7 @@
 #pragma once
 
 #include "codec/encoder.h"
+#include "common/net.h"
 #include "md.h"
 #include "oe.h"
 #include <algorithm>
@@ -36,16 +37,6 @@ inline int connect_to_server(const std::string &host, int port) {
   }
 
   return fd;
-}
-
-inline void send_all(int fd, const std::byte *data, std::size_t len) {
-  std::size_t sent = 0;
-  while (sent < len) {
-    ssize_t n = send(fd, data + sent, len - sent, 0);
-    if (n <= 0)
-      throw std::runtime_error("send failed");
-    sent += static_cast<std::size_t>(n);
-  }
 }
 
 // decimal price -> fixed point x10,000. llround so 101.23 doesn't truncate to
