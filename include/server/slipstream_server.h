@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include "codec/parser.h"
+#include "server/decision_engine.h"
 #include "server/rolling_vwap.h"
 #include "server/top_of_book.h"
 
@@ -31,6 +32,7 @@ class slipstream_server {
   std::string _symbol;
   top_of_book _book;
   rolling_vwap<4096, overflow_policy::halt> _vwap;
+  decision_engine _engine;
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -80,6 +82,7 @@ class slipstream_server {
     }
 
     _book.update(*body);
+    _engine.on_quote();
     std::println("{} book: {}", sym, _book);
   }
 
@@ -97,9 +100,18 @@ class slipstream_server {
     }
 
     _vwap.add(body->ts_ns, body->px, body->qty);
+    _engine.on_trade(body->ts_ns, body->qty);
+    auto d = _engine.evaluate(body->ts_ns, _book, _vwap.vwap());
     if (auto v = _vwap.vwap()) {
       std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body->px),
                    body->qty, fmt_px(*v));
+    }
+
+    if (d.is_accepted()) {
+      std::println("{} decision {} {} @ {}", sym, to_string(d.side),
+                   d.quantity, fmt_px(d.limit_price));
+    } else {
+      std::println("{} decision rejected: {}", sym, to_string(d.reason));
     }
   }
 
@@ -125,10 +137,9 @@ class slipstream_server {
   }
 
 public:
-  slipstream_server(uint16_t md, uint16_t oe, std::string symbol,
-                    uint64_t vwap_window_ms)
-      : _md_port(md), _oe_port(oe), _symbol(symbol),
-        _vwap(vwap_window_ms * 1'000'000ULL) {}
+  explicit slipstream_server(const flag_config &cfg)
+      : _md_port(cfg.md_port), _oe_port(cfg.oe_port), _symbol(cfg.symbol),
+        _vwap(ms_to_ns(cfg.vwap_window_ms)), _engine(cfg) {}
 
   ~slipstream_server() {
     if (_md_fd >= 0) {

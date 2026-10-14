@@ -24,7 +24,8 @@ int connect_to(uint16_t port) {
 } // namespace
 
 TEST(SlipstreamServer, AcceptsBothClients) {
-  slipstream_server server(0, 0, "SYNTH4", 1000);
+  flag_config cfg{.symbol = "SYNTH4", .vwap_window_ms = 1000};
+  slipstream_server server(cfg);
   server.start();
 
   std::thread server_thread([&] { server.run(); });

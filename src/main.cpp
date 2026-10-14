@@ -7,8 +7,7 @@ int main(int argc, char **argv) {
   try {
     auto cfg = parse_args(argc, argv);
 
-    slipstream_server server(cfg.md_port, cfg.oe_port, cfg.symbol,
-                             cfg.vwap_window_ms);
+    slipstream_server server(cfg);
     std::println("starting server...");
     server.start();
     server.run();
