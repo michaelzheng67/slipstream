@@ -211,13 +211,14 @@ public:
     }
 
     std::println("clients running!");
-    pollfd fds[2] = {
+    pollfd fds[3] = {
         {.fd = md_client, .events = POLLIN, .revents = 0},
         {.fd = _oe_conn, .events = POLLIN, .revents = 0},
+        {.fd = STDIN_FILENO, .events = POLLIN, .revents = 0},
     };
 
     while (fds[0].fd >= 0 || fds[1].fd >= 0) {
-      if (poll(fds, 2, -1) < 0) {
+      if (poll(fds, 3, -1) < 0) {
         if (errno == EINTR)
           continue;
         throw std::runtime_error("poll() failed");
@@ -241,6 +242,37 @@ public:
           close(fds[1].fd);
           fds[1].fd = -1;
           _oe_conn = -1;
+        }
+      }
+
+      if (fds[2].revents) {
+        char buf[4096];
+        ssize_t n = read(fds[2].fd, buf, sizeof(buf));
+        if (n <= 0) {
+          if (n < 0 && errno == EINTR) {
+            continue;
+          }
+          fds[2].fd = -1;
+        } else {
+          std::string_view sv(buf, static_cast<std::size_t>(n));
+
+          if (!sv.empty() && sv.back() == '\n') {
+            sv.remove_suffix(1);
+          }
+
+          if (sv == "HALT") {
+            _engine.set_halted(true);
+          } else if (sv == "OPEN") {
+            _engine.set_halted(false);
+          } else if (sv == "CLOSE") {
+            close(fds[0].fd);
+            close(fds[1].fd);
+            _oe_conn = -1;
+            fds[0].fd = -1;
+            fds[1].fd = -1;
+          } else {
+            std::println("unknown command");
+          }
         }
       }
     }
