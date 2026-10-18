@@ -1,9 +1,11 @@
 #include "cli/cli_config.h"
 #include "server/slipstream_server.h"
+#include <csignal>
 #include <iostream>
 #include <print>
 
 int main(int argc, char **argv) {
+  std::signal(SIGPIPE, SIG_IGN);
   try {
     auto cfg = parse_args(argc, argv);
 

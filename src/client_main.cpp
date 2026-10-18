@@ -1,8 +1,10 @@
 #include "client/harness.h"
+#include <csignal>
 #include <iostream>
-
 // usage: slipstream_client <host> <md_port> <oe_port> <csv>
 int main(int argc, char **argv) {
+  std::signal(SIGPIPE, SIG_IGN);
+
   if (argc != 5) {
     std::cerr << "usage: " << argv[0] << " <host> <md_port> <oe_port> <csv>\n";
     return 1;

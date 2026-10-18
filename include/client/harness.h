@@ -134,36 +134,48 @@ public:
     _oe_fd = connect_to_server(_host, _oe_port);
 
     std::thread md_thread([this] {
-      std::function<void(const row &)> send_quote = [this](const row &r) {
-        auto bytes = serialize_quote(r);
-        send_all(_md_fd, bytes.data(), bytes.size());
-      };
-      _md_client.replay(send_quote);
+      try {
+        std::function<void(const row &)> send_quote = [this](const row &r) {
+          auto bytes = serialize_quote(r);
+          send_all(_md_fd, bytes.data(), bytes.size());
+        };
+        _md_client.replay(send_quote);
+      } catch (const std::exception &e) {
+        std::println(stderr, "md thread stopped: {}", e.what());
+      }
     });
 
     std::thread oe_thread([this] {
-      int64_t next_id = 1;
-      std::function<void(const row &)> send_trade = [&](const row &r) {
-        auto bytes = serialize_trade(r, next_id++);
-        send_all(_oe_fd, bytes.data(), bytes.size());
-      };
-      _oe_client.replay(send_trade);
+      try {
+        int64_t next_id = 1;
+        std::function<void(const row &)> send_trade = [&](const row &r) {
+          auto bytes = serialize_trade(r, next_id++);
+          send_all(_oe_fd, bytes.data(), bytes.size());
+        };
+        _oe_client.replay(send_trade);
+      } catch (const std::exception &e) {
+        std::println(stderr, "oe thread stopped: {}", e.what());
+      }
     });
 
     std::thread oe_reader([this] {
-      std::byte buf[4096];
-      std::function<void(const new_order &)> print_order =
-          [](const new_order &o) {
-            std::println("order {} {} {} {} @ {}", o.client_order_id, o.status,
-                         o.side, o.qty, fmt_px(o.limit_px));
-          };
+      try {
+        std::byte buf[4096];
+        std::function<void(const new_order &)> print_order =
+            [](const new_order &o) {
+              std::println("order {} {} {} {} @ {}", o.client_order_id,
+                           o.status, o.side, o.qty, fmt_px(o.limit_px));
+            };
 
-      while (true) {
-        ssize_t n = recv(_oe_fd, buf, sizeof(buf), 0);
-        if (n <= 0) {
-          break;
+        while (true) {
+          ssize_t n = recv(_oe_fd, buf, sizeof(buf), 0);
+          if (n <= 0) {
+            break;
+          }
+          _oe_client.feed(buf, n, print_order);
         }
-        _oe_client.feed(buf, n, print_order);
+      } catch (const std::exception &e) {
+        std::println(stderr, "oe reader stopped: {}", e.what());
       }
     });
 
