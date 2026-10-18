@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-TEST(OrderEntryClientTest, HandlesIncomingExecReport) {
+TEST(OrderEntryClientTest, HandlesIncomingNewOrder) {
   const std::string path = "./data/test_file.csv";
 
   {
@@ -14,43 +14,41 @@ TEST(OrderEntryClientTest, HandlesIncomingExecReport) {
 
   order_entry_client client(path);
 
-  exec_report report{};
-  report.client_order_id = 123;
-  report.status = 1;
-  report.filled_qty = 50;
-  report.avg_px = 341900;
-  report.reason_code = 0;
+  new_order order{};
+  order.client_order_id = 123;
+  order.status = 'A';
+  order.side = 'B';
+  order.qty = 50;
+  order.limit_px = 341900;
+  order.trace_id = 7;
 
   frame_header header{
-      .body_len = sizeof(exec_report),
-      .msg_type = 11,
+      .body_len = sizeof(new_order),
+      .msg_type = 10,
       .version = 1,
   };
 
-  std::vector<std::byte> frame(sizeof(frame_header) + sizeof(exec_report));
-
+  std::vector<std::byte> frame(sizeof(frame_header) + sizeof(new_order));
   std::memcpy(frame.data(), &header, sizeof(header));
+  std::memcpy(frame.data() + sizeof(header), &order, sizeof(order));
 
-  std::memcpy(frame.data() + sizeof(header), &report, sizeof(report));
-
-  std::vector<exec_report> reports;
-
-  std::function<void(const exec_report &)> callback =
-      [&](const exec_report &r) { reports.push_back(r); };
+  std::vector<new_order> orders;
+  std::function<void(const new_order &)> callback =
+      [&](const new_order &o) { orders.push_back(o); };
 
   // Split the incoming message across two recv-like boundaries.
   std::size_t split = frame.size() / 2;
 
   client.feed(frame.data(), split, callback);
-
-  EXPECT_TRUE(reports.empty());
+  EXPECT_TRUE(orders.empty());
 
   client.feed(frame.data() + split, frame.size() - split, callback);
+  ASSERT_EQ(orders.size(), 1);
 
-  ASSERT_EQ(reports.size(), 1);
-
-  EXPECT_EQ(reports[0].client_order_id, 123);
-  EXPECT_EQ(reports[0].filled_qty, 50);
-  EXPECT_EQ(reports[0].avg_px, 341900);
-  EXPECT_EQ(reports[0].reason_code, 0);
+  EXPECT_EQ(orders[0].client_order_id, 123u);
+  EXPECT_EQ(orders[0].status, 'A');
+  EXPECT_EQ(orders[0].side, 'B');
+  EXPECT_EQ(orders[0].qty, 50u);
+  EXPECT_EQ(orders[0].limit_px, 341900);
+  EXPECT_EQ(orders[0].trace_id, 7);
 }

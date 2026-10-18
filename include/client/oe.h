@@ -64,12 +64,12 @@ public:
   }
 
   void feed(const std::byte *data, std::size_t len,
-            const std::function<void(const exec_report &)> &on_report) {
+            const std::function<void(const new_order &)> &on_order) {
     auto messages = _parser.feed(data, len);
 
     for (const auto &msg : messages) {
-      if (std::holds_alternative<exec_report>(msg)) {
-        on_report(std::get<exec_report>(msg));
+      if (auto *o = std::get_if<new_order>(&msg)) {
+        on_order(*o);
       }
     }
   }

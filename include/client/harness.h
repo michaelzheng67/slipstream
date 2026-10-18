@@ -2,6 +2,7 @@
 
 #include "codec/encoder.h"
 #include "common/net.h"
+#include "common/price.h"
 #include "md.h"
 #include "oe.h"
 #include <algorithm>
@@ -10,7 +11,9 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <iterator>
 #include <netinet/in.h>
+#include <print>
 #include <stdexcept>
 #include <string>
 #include <sys/socket.h>
@@ -48,8 +51,10 @@ inline void copy_symbol(char (&dst)[12], const std::string &src) {
   std::memcpy(dst, src.data(), std::min(src.size(), sizeof(dst)));
 }
 
-using quote_frame = std::array<std::byte, sizeof(frame_header) + sizeof(quote_body)>;
-using trade_frame = std::array<std::byte, sizeof(frame_header) + sizeof(trade_body)>;
+using quote_frame =
+    std::array<std::byte, sizeof(frame_header) + sizeof(quote_body)>;
+using trade_frame =
+    std::array<std::byte, sizeof(frame_header) + sizeof(trade_body)>;
 
 inline quote_frame serialize_quote(const row &r) {
   if (!r.bid_price || !r.bid_qty || !r.ask_price || !r.ask_qty) {
@@ -145,11 +150,30 @@ public:
       _oe_client.replay(send_trade);
     });
 
+    std::thread oe_reader([this] {
+      std::byte buf[4096];
+      std::function<void(const new_order &)> print_order =
+          [](const new_order &o) {
+            std::println("order {} {} {} {} @ {}", o.client_order_id, o.status,
+                         o.side, o.qty, fmt_px(o.limit_px));
+          };
+
+      while (true) {
+        ssize_t n = recv(_oe_fd, buf, sizeof(buf), 0);
+        if (n <= 0) {
+          break;
+        }
+        _oe_client.feed(buf, n, print_order);
+      }
+    });
+
     md_thread.join();
     oe_thread.join();
 
     // Half-close write sides so the server's recv() loops see EOF and exit.
     ::shutdown(_md_fd, SHUT_WR);
     ::shutdown(_oe_fd, SHUT_WR);
+
+    oe_reader.join();
   }
 };
