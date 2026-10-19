@@ -1,8 +1,10 @@
 #pragma once
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <netinet/in.h>
@@ -161,6 +163,19 @@ class slipstream_server {
     send_all(_oe_conn, buf.data(), buf.size());
   }
 
+  void send_heartbeat(uint64_t ts_ns) {
+    if (_oe_conn < 0)
+      return;
+    heartbeat_body hb{};
+    hb.ts_ns = ts_ns;
+
+    frame_header fh{sizeof(heartbeat_body), 3, 1};
+    std::array<std::byte, sizeof(frame_header) + sizeof(heartbeat_body)> buf;
+    encoder::encoding(fh, hb, buf.data());
+
+    send_all(_oe_conn, buf.data(), buf.size());
+  }
+
 public:
   explicit slipstream_server(const flag_config &cfg)
       : _md_port(cfg.md_port), _oe_port(cfg.oe_port), _symbol(cfg.symbol),
@@ -217,8 +232,15 @@ public:
         {.fd = STDIN_FILENO, .events = POLLIN, .revents = 0},
     };
 
+    using clock = std::chrono::steady_clock;
+    constexpr auto hb_interval = std::chrono::seconds(5);
+    auto next_hb = clock::now() + hb_interval;
+
     while (fds[0].fd >= 0 || fds[1].fd >= 0) {
-      if (poll(fds, 3, -1) < 0) {
+      auto wait = std::chrono::duration_cast<std::chrono::milliseconds>(
+          next_hb - clock::now());
+      int timeout_ms = std::max<int>(0, static_cast<int>(wait.count()));
+      if (poll(fds, 3, timeout_ms) < 0) {
         if (errno == EINTR)
           continue;
         throw std::runtime_error("poll() failed");
@@ -274,6 +296,14 @@ public:
             std::println("unknown command");
           }
         }
+      }
+
+      if (clock::now() >= next_hb) {
+        auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                      clock::now().time_since_epoch())
+                      .count();
+        send_heartbeat(static_cast<uint64_t>(ns));
+        next_hb += hb_interval;
       }
     }
   }
