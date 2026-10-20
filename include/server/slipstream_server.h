@@ -19,6 +19,7 @@
 #include "common/net.h"
 #include "server/decision_engine.h"
 #include "server/rolling_vwap.h"
+#include "server/session_stats.h"
 #include "server/top_of_book.h"
 
 class slipstream_server {
@@ -41,6 +42,7 @@ class slipstream_server {
   top_of_book _book;
   rolling_vwap<4096, overflow_policy::halt> _vwap;
   decision_engine _engine;
+  session_stats _stats;
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -109,7 +111,9 @@ class slipstream_server {
 
     _vwap.add(body->ts_ns, body->px, body->qty);
     _engine.on_trade(body->ts_ns, body->qty);
+    _stats.on_trade(body->qty);
     auto d = _engine.evaluate(body->ts_ns, _book, _vwap.vwap());
+    _stats.on_decision(d);
     send_order(d, *body);
     if (auto v = _vwap.vwap()) {
       std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body->px),
@@ -306,5 +310,7 @@ public:
         next_hb += hb_interval;
       }
     }
+
+    _stats.print();
   }
 };

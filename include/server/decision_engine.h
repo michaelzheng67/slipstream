@@ -33,6 +33,7 @@ enum class reject_reason {
   over_participation_cap,
   zero_quantity,
   halted,
+  count,
 };
 
 struct decision {
@@ -74,6 +75,8 @@ constexpr std::string_view to_string(reject_reason r) {
     return "zero_quantity";
   case reject_reason::halted:
     return "halted";
+  case reject_reason::count:
+    return "count";
   }
   return "unknown";
 }
