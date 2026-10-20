@@ -44,6 +44,9 @@ class slipstream_server {
   decision_engine _engine;
   session_stats _stats;
 
+  using clock = std::chrono::steady_clock;
+  clock::time_point _rx_time;
+
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -137,6 +140,8 @@ class slipstream_server {
       return false;
     }
 
+    _rx_time = clock::now();
+
     try {
       auto messages = p.feed(buf, static_cast<std::size_t>(n));
       for (auto &message : messages) {
@@ -165,6 +170,10 @@ class slipstream_server {
     encoder::encoding(fh, o, buf.data());
 
     send_all(_oe_conn, buf.data(), buf.size());
+    auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                  clock::now() - _rx_time)
+                  .count();
+    std::println("nanoseconds elapsed {}", ns);
   }
 
   void send_heartbeat(uint64_t ts_ns) {
@@ -236,7 +245,6 @@ public:
         {.fd = STDIN_FILENO, .events = POLLIN, .revents = 0},
     };
 
-    using clock = std::chrono::steady_clock;
     constexpr auto hb_interval = std::chrono::seconds(5);
     auto next_hb = clock::now() + hb_interval;
 
