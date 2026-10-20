@@ -64,12 +64,15 @@ public:
   }
 
   void feed(const std::byte *data, std::size_t len,
-            const std::function<void(const new_order &)> &on_order) {
+            const std::function<void(const new_order &)> &on_order,
+            const std::function<void(const heartbeat_body &)> &on_heartbeat) {
     auto messages = _parser.feed(data, len);
 
     for (const auto &msg : messages) {
       if (auto *o = std::get_if<new_order>(&msg)) {
         on_order(*o);
+      } else if (auto *hb = std::get_if<heartbeat_body>(&msg)) {
+        on_heartbeat(*hb);
       }
     }
   }

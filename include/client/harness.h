@@ -166,13 +166,17 @@ public:
               std::println("order {} {} {} {} @ {}", o.client_order_id,
                            o.status, o.side, o.qty, fmt_px(o.limit_px));
             };
+        std::function<void(const heartbeat_body &)> print_heartbeat =
+            [](const heartbeat_body &hb) {
+              std::println("heartbeat {}", hb.ts_ns);
+            };
 
         while (true) {
           ssize_t n = recv(_oe_fd, buf, sizeof(buf), 0);
           if (n <= 0) {
             break;
           }
-          _oe_client.feed(buf, n, print_order);
+          _oe_client.feed(buf, n, print_order, print_heartbeat);
         }
       } catch (const std::exception &e) {
         std::println(stderr, "oe reader stopped: {}", e.what());

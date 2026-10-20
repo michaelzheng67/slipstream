@@ -35,14 +35,17 @@ TEST(OrderEntryClientTest, HandlesIncomingNewOrder) {
   std::vector<new_order> orders;
   std::function<void(const new_order &)> callback =
       [&](const new_order &o) { orders.push_back(o); };
+  std::function<void(const heartbeat_body &)> on_heartbeat =
+      [](const heartbeat_body &) {};
 
   // Split the incoming message across two recv-like boundaries.
   std::size_t split = frame.size() / 2;
 
-  client.feed(frame.data(), split, callback);
+  client.feed(frame.data(), split, callback, on_heartbeat);
   EXPECT_TRUE(orders.empty());
 
-  client.feed(frame.data() + split, frame.size() - split, callback);
+  client.feed(frame.data() + split, frame.size() - split, callback,
+              on_heartbeat);
   ASSERT_EQ(orders.size(), 1);
 
   EXPECT_EQ(orders[0].client_order_id, 123u);
