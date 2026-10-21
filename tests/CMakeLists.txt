@@ -19,6 +19,7 @@ add_executable(
   test_server.cpp
   test_cli_config.cpp
   test_decision_engine.cpp
+  test_latency_recorder.cpp
   ${CMAKE_SOURCE_DIR}/src/cli/cli_config.cpp
 )
 

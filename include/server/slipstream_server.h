@@ -18,6 +18,7 @@
 #include "codec/parser.h"
 #include "common/net.h"
 #include "server/decision_engine.h"
+#include "server/latency_recorder.h"
 #include "server/rolling_vwap.h"
 #include "server/session_stats.h"
 #include "server/top_of_book.h"
@@ -46,6 +47,7 @@ class slipstream_server {
 
   using clock = std::chrono::steady_clock;
   clock::time_point _rx_time;
+  latency_recorder _latency{1'000'000};
 
   static int create_fd(uint16_t port) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -173,7 +175,7 @@ class slipstream_server {
     auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
                   clock::now() - _rx_time)
                   .count();
-    std::println("nanoseconds elapsed {}", ns);
+    _latency.record(static_cast<uint64_t>(ns));
   }
 
   void send_heartbeat(uint64_t ts_ns) {
@@ -320,5 +322,6 @@ public:
     }
 
     _stats.print();
+    _latency.print();
   }
 };
