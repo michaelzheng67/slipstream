@@ -49,6 +49,8 @@ flag_config parse_args(int argc, char **argv) {
         throw std::runtime_error("invalid --max-quantity value: " +
                                  std::string(v));
       }
+    } else if (arg == "--quiet") {
+      cfg.quiet = true;
     } else {
       throw std::runtime_error("unknown argument: " + std::string(arg));
     }

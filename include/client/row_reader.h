@@ -3,6 +3,7 @@
 #include "row.h"
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <vector>
 
 namespace csv_row {
@@ -27,7 +28,12 @@ inline uint64_t parse_timestamp_ns(const std::string &ts) {
   return total_ms * 1'000'000ULL;
 }
 
-inline row parse_row(const std::vector<std::string> &fields) {
+inline row parse_row(std::vector<std::string> fields) {
+  if (fields.size() < 8 || fields.size() > 9) {
+    throw std::runtime_error("bad csv row: expected 8 or 9 fields");
+  }
+  fields.resize(9);
+
   row r;
   r.timestamp = fields[0];
   r.type = string_to_row_type[fields[1]];

@@ -88,11 +88,12 @@ Server:
 | `--band` | Signal threshold as a decimal fraction (`0.0005` = 5 bp) |
 | `--participation-cap` | Max fraction of market volume we may trade (`0.1` = 10%) |
 | `--max-quantity` | Max order size |
+| `--quiet` | Disable per-message console output (use for latency runs) |
 
-Client (replays the CSV in real time, so the full sample file takes about an hour):
+Client (replays the CSV in real time, so the full sample file takes about an hour; add `--no-sleep` to replay as fast as possible for benchmarking):
 
 ```
-./build/slipstream_client 127.0.0.1 9000 9001 data/Quotes_and_Trades.csv
+./build/slipstream_client 127.0.0.1 9000 9001 data/Quotes_and_Trades.csv [--no-sleep]
 ```
 
 Operator commands on the server's stdin: `HALT` (reject all decisions), `OPEN` (resume), `CLOSE` (shut down). On shutdown the server prints an execution report: decisions, accepted quantity, market quantity, participation, and a count per reject reason.
@@ -114,14 +115,25 @@ Caveats:
 
 ### Results
 
-| Configuration | n | p50 | p99 | p99.9 | Notes |
-|---|---|---|---|---|---|
-| Debug, real-time replay | 6 | ~60 µs | n/a | n/a | Unoptimized build, cold caches between trades; baseline only |
-| Release, real-time replay | | | | | |
-| Release, no-sleep replay | | | | | Warm caches |
-| Release, no-sleep, console output off | | | | | |
+Setup: Apple M3 Pro, macOS 26.5, Apple clang 21, Release (`-O3`), client and server on loopback TCP. Full sample file, SYNTH4: 928 trades, so 928 samples per run. Ranges are across 4 runs per configuration.
+
+| Configuration | Samples per run | p50 | p99 |
+|---|---|---|---|
+| Debug, real-time replay | 6 | 32–74 µs | n/a |
+| Release, real-time replay | 6 | ~39 µs | n/a |
+| Release, no-sleep replay | 928 | 5.6–8.5 µs | 44–155 µs |
+| Release, no-sleep, `--quiet` | 928 | **3.5–4.2 µs** | **14–20 µs** |
+
+p99.9 is not reported: with 928 samples it is the single worst sample, which varies too much between runs to mean anything.
 
 Samples are kept in a preallocated buffer (no allocation on the hot path); percentiles are computed by sorting at shutdown (nearest-rank).
+
+### Findings
+
+- **Cold vs. warm dominates.** At real-time pace the server sleeps in `poll()` for seconds between trades, and each trade starts on a cold core and cold caches. Replaying without sleeps cut p50 from ~35 µs to ~4 µs with no code change.
+- **Compiler optimization made no measurable difference.** Debug and Release were within noise of each other. The time is in the kernel (`send()` on loopback) and in waking up, not in the decision logic.
+- **Console I/O dominates the tail.** Printing on the hot path costs a little on every message and occasionally a large buffered `write()`. Disabling it with `--quiet` improved p50 by ~1.8× and p99 by 5–7×, and made p99 far more consistent between runs. Production systems hand logging off to a separate thread for this reason.
+- **Validate the benchmark before trusting it.** The first no-sleep runs exposed a latent heap overflow in the CSV reader: quote rows split into 8 fields, but the parser read a 9th. At real-time pace the out-of-bounds read was usually harmless. Under load, it intermittently threw and stopped a replay thread, so those runs processed only part of the input. They were discarded, the reader was fixed (confirmed with AddressSanitizer), and every reported run was checked to contain all 928 samples.
 
 ## Further measurement plan
 

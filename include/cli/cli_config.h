@@ -12,6 +12,7 @@ struct flag_config {
   uint32_t band_bps = 0;
   uint32_t participation_cap_bps = 0;
   uint32_t max_quantity = 0;
+  bool quiet = false;
 };
 
 flag_config parse_args(int argc, char **argv);

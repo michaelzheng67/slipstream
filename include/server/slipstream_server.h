@@ -45,6 +45,8 @@ class slipstream_server {
   decision_engine _engine;
   session_stats _stats;
 
+  bool _quiet;
+
   using clock = std::chrono::steady_clock;
   clock::time_point _rx_time;
   latency_recorder _latency{1'000'000};
@@ -98,7 +100,9 @@ class slipstream_server {
 
     _book.update(*body);
     _engine.on_quote();
-    std::println("{} book: {}", sym, _book);
+    if (!_quiet) {
+      std::println("{} book: {}", sym, _book);
+    }
   }
 
   void handle_oe_message(decoder::msg_body &message) {
@@ -120,6 +124,10 @@ class slipstream_server {
     auto d = _engine.evaluate(body->ts_ns, _book, _vwap.vwap());
     _stats.on_decision(d);
     send_order(d, *body);
+    if (_quiet) {
+      return;
+    }
+
     if (auto v = _vwap.vwap()) {
       std::println("{} trade {} x {} | vwap {}", sym, fmt_px(body->px),
                    body->qty, fmt_px(*v));
@@ -194,7 +202,7 @@ class slipstream_server {
 public:
   explicit slipstream_server(const flag_config &cfg)
       : _md_port(cfg.md_port), _oe_port(cfg.oe_port), _symbol(cfg.symbol),
-        _vwap(ms_to_ns(cfg.vwap_window_ms)), _engine(cfg) {}
+        _vwap(ms_to_ns(cfg.vwap_window_ms)), _engine(cfg), _quiet(cfg.quiet) {}
 
   ~slipstream_server() {
     if (_md_fd >= 0) {
