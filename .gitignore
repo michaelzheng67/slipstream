@@ -2,3 +2,5 @@
 .vscode/
 build/
 data/test_file.csv
+build-release/
+.DS_Store
