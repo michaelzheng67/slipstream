@@ -36,7 +36,7 @@ public:
     }
   }
 
-  void replay(std::function<void(const row &)> &on_order) {
+  void replay(std::function<void(const row &)> &on_order, bool realtime) {
     std::vector<std::string> res;
     std::string line;
     auto start_time = std::chrono::steady_clock::now();
@@ -57,8 +57,10 @@ public:
       }
 
       uint64_t offset_ns = ts_ns - first_ts_ns;
-      std::this_thread::sleep_until(start_time +
-                                    std::chrono::nanoseconds(offset_ns));
+      if (realtime) {
+        std::this_thread::sleep_until(start_time +
+                                      std::chrono::nanoseconds(offset_ns));
+      }
       on_order(*r);
     }
   }

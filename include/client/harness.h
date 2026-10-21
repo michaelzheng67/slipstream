@@ -114,12 +114,13 @@ class client_harness {
   order_entry_client _oe_client;
   int _md_fd{-1};
   int _oe_fd{-1};
+  bool _realtime;
 
 public:
   client_harness(std::string host, int md_port, int oe_port,
-                 std::string md_file, std::string oe_file)
+                 std::string md_file, std::string oe_file, bool realtime)
       : _host(std::move(host)), _md_port(md_port), _oe_port(oe_port),
-        _md_client(md_file), _oe_client(oe_file) {}
+        _md_client(md_file), _oe_client(oe_file), _realtime(realtime) {}
 
   ~client_harness() {
     if (_md_fd >= 0)
@@ -139,7 +140,7 @@ public:
           auto bytes = serialize_quote(r);
           send_all(_md_fd, bytes.data(), bytes.size());
         };
-        _md_client.replay(send_quote);
+        _md_client.replay(send_quote, _realtime);
       } catch (const std::exception &e) {
         std::println(stderr, "md thread stopped: {}", e.what());
       }
@@ -152,7 +153,7 @@ public:
           auto bytes = serialize_trade(r, next_id++);
           send_all(_oe_fd, bytes.data(), bytes.size());
         };
-        _oe_client.replay(send_trade);
+        _oe_client.replay(send_trade, _realtime);
       } catch (const std::exception &e) {
         std::println(stderr, "oe thread stopped: {}", e.what());
       }

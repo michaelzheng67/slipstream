@@ -30,7 +30,7 @@ TEST(MarketDataClientTest, ReplaysQuotesWithTiming) {
     times.push_back(std::chrono::steady_clock::now());
   };
 
-  client.replay(callback);
+  client.replay(callback, true);
 
   // Trade should have been ignored.
   ASSERT_EQ(rows.size(), 2);
